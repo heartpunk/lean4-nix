@@ -4,7 +4,6 @@
   pkgs,
   fetchurl,
   stdenv,
-  system,
   zstd,
   clang,
   lld,
@@ -33,15 +32,15 @@
     };
   fetchBinaryLean = manifest: let
     version = builtins.substring 1 (-1) manifest.tag;
-    system-tag = builtins.getAttr system {
+    system-tag = builtins.getAttr stdenv.hostPlatform.system {
       x86_64-linux = "linux";
       aarch64-linux = "linux_aarch64";
       x86_64-darwin = "darwin";
       aarch64-darwin = "darwin_aarch64";
     };
     tarball = fetchurl {
-      url = manifest.toolchain.${system}.url or "https://github.com/leanprover/lean4/releases/download/${manifest.tag}/lean-${version}-${system-tag}.tar.zst";
-      hash = manifest.toolchain.${system}.hash;
+      url = manifest.toolchain.${stdenv.hostPlatform.system}.url or "https://github.com/leanprover/lean4/releases/download/${manifest.tag}/lean-${version}-${system-tag}.tar.zst";
+      hash = manifest.toolchain.${stdenv.hostPlatform.system}.hash;
     };
     mkDerivation = args @ {nativeBuildInputs ? [], ...}:
       stdenv.mkDerivation (args
