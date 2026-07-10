@@ -1,5 +1,7 @@
 {
   tag = "v4.31.0";
+  dontStrip = true;
+  patchDarwinDylibNames = false;
   rev = "68218e876d2a38b1985b8590fff244a83c321783";
   toolchain = {
     aarch64-linux = {

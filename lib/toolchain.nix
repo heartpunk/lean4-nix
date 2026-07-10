@@ -45,9 +45,10 @@
     mkDerivation = args @ {nativeBuildInputs ? [], ...}:
       stdenv.mkDerivation (args
         // {
+          dontStrip = args.dontStrip or (manifest.dontStrip or false);
           nativeBuildInputs =
             nativeBuildInputs
-            ++ lib.optional stdenv.isDarwin fixDarwinDylibNames
+            ++ lib.optional (stdenv.isDarwin && (manifest.patchDarwinDylibNames or true)) fixDarwinDylibNames
             ++ lib.optionals stdenv.isLinux [autoPatchelfHook stdenv.cc.cc.lib];
         });
     compile-bin = lib.makeBinPath [lld];
