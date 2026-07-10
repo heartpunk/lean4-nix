@@ -16,7 +16,7 @@
 }: rec {
   toolchain-fetch = writeShellApplication {
     name = "toolchain-fetch";
-    runtimeInputs = with pkgs; [jq git wget coreutils nix];
+    runtimeInputs = with pkgs; [bash jq git wget coreutils nix];
     text = ''exec ${./toolchain-fetch.sh} "$@"'';
   };
   srcFromManifest = manifest @ {
