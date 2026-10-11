@@ -81,6 +81,11 @@
             substituteInPlace "$file" \
               --replace-quiet '${pattern}' '${mimalloc-src}'
           done
+          # The Nix source subset excludes Lean's test tree, while recent Lean
+          # CMake files add it for non-stage-0 builds even with tests disabled.
+          substituteInPlace src/CMakeLists.txt \
+            --replace-fail 'if(NOT STAGE EQUAL 0)' \
+              'if(NOT STAGE EQUAL 0 AND EXISTS "''${CMAKE_CURRENT_SOURCE_DIR}/../tests")'
         '';
         dontBuild = true;
         dontConfigure = true;
