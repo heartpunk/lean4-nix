@@ -92,6 +92,9 @@
         installPhase = ''
           mkdir -p $out
           cp -r * $out/
+          # The source subset omits hidden directories, including the target
+          # of Lean's AGENTS.md symlink in newer releases.
+          rm -f $out/AGENTS.md
         '';
       };
       args = args0 // {inherit src;};
