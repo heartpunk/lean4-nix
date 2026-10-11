@@ -57,7 +57,7 @@
              # stage0 update for now. If we ever update the other dependencies like
              # cadical, it might be worth reorganizing the directory structure.
              SOURCE_DIR
-        -    "\${CMAKE_BINARY_DIR}/mimalloc/src/mimalloc"
+        -    "''${CMAKE_BINARY_DIR}/mimalloc/src/mimalloc"
         +    "${mimalloc-src}"
              EXCLUDE_FROM_ALL
            )
