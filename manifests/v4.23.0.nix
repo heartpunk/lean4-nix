@@ -28,6 +28,7 @@
     lndir,
     perl,
     pkg-config,
+    openssl,
     gnused,
     darwin,
     llvmPackages,
@@ -93,7 +94,7 @@
       buildCMake = args:
         stdenv.mkDerivation ({
             nativeBuildInputs = [cmake mimalloc-src];
-            buildInputs = [gmp libuv llvmPackages.llvm pkg-config];
+            buildInputs = [gmp libuv llvmPackages.llvm pkg-config openssl];
             # https://github.com/NixOS/nixpkgs/issues/60919
             hardeningDisable = ["all"];
             dontStrip = args.debug or debug;
