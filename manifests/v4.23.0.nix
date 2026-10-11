@@ -39,7 +39,7 @@
       owner = "microsoft";
       repo = "mimalloc";
       rev = "v3.4.4";
-      sha256 = "sha256-0bll4fax1kmgb3br2iw757xmfbqiba5qmnbf3d4dnwir58xar788=";
+      sha256 = "sha256-CJ2sOio5cttIG27ZiotaES9X+ymHR5HXWK/O0JUjlC4=";
     };
     mimalloc-patch =
       pkgs.writeText "mimalloc.patch"
