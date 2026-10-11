@@ -38,27 +38,29 @@
     mimalloc-src = pkgs.fetchFromGitHub {
       owner = "microsoft";
       repo = "mimalloc";
-      rev = "v2.2.3";
-      sha256 = "sha256-B0gngv16WFLBtrtG5NqA2m5e95bYVcQraeITcOX9A74=";
+      rev = "v3.4.4";
+      sha256 = "sha256-0bll4fax1kmgb3br2iw757xmfbqiba5qmnbf3d4dnwir58xar788=";
     };
     mimalloc-patch =
       pkgs.writeText "mimalloc.patch"
       ''
         --- a/CMakeLists.txt
         +++ b/CMakeLists.txt
-        @@ -68,11 +68,7 @@
-         if (USE_MIMALLOC)
-           ExternalProject_add(mimalloc
-             PREFIX mimalloc
+        @@ -129,13 +129,10 @@
+         if(USE_MIMALLOC)
+           FetchContent_Declare(
+             mimalloc
         -    GIT_REPOSITORY https://github.com/microsoft/mimalloc
-        -    GIT_TAG v2.2.3
-        -    # just download, we compile it as part of each stage as it is small
-        -    CONFIGURE_COMMAND ""
-        -    BUILD_COMMAND ""
-        +    SOURCE_DIR "${mimalloc-src}"
-             INSTALL_COMMAND "")
-           list(APPEND EXTRA_DEPENDS mimalloc)
-         endif()
+        -    GIT_BRANCH dev3
+        -    GIT_TAG v3.4.4
+             # Unnecessarily deep directory structure, but it saves us from a complicated
+             # stage0 update for now. If we ever update the other dependencies like
+             # cadical, it might be worth reorganizing the directory structure.
+             SOURCE_DIR
+        -    "${CMAKE_BINARY_DIR}/mimalloc/src/mimalloc"
+        +    "${mimalloc-src}"
+             EXCLUDE_FROM_ALL
+           )
       '';
   in
     with builtins; rec {
