@@ -11,25 +11,49 @@ permissions:
   contents: read
 
 jobs:
+  manifest-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: matrix
+        name: Build version and macOS runner matrix
+        run: |
+          set -euo pipefail
+          entries="$(sed -nE 's/^[[:space:]]*"(v[^"]+)"[[:space:]]*=[[:space:]]*import.*/\1/p' manifests/default.nix | while IFS= read -r version; do
+            manifest="manifests/$version.nix"
+            if grep -Eq '^[[:space:]]+aarch64-darwin(\.|[[:space:]]*=)' "$manifest"; then
+              printf '%s\taarch64-darwin\n' "$version"
+            fi
+            if grep -Eq '^[[:space:]]+x86_64-darwin(\.|[[:space:]]*=)' "$manifest"; then
+              printf '%s\tx86_64-darwin\n' "$version"
+            fi
+          done)"
+          test -n "$entries"
+          matrix="$(printf '%s\n' "$entries" | jq -Rsc 'split("\n") | map(select(length > 0) | split("\t") | {version: .[0], nix_system: .[1], runner: (if .[1] == "aarch64-darwin" then "macos-15" else "macos-15-intel" end)}) | {include: .}')"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
   lean-dylibs:
-    name: Lean 4.34.0 on ${{ matrix.runner }}
+    needs: manifest-matrix
+    name: Lean ${{ matrix.version }} on ${{ matrix.runner }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - runner: macos-15
-            nix-system: aarch64-darwin
-          - runner: macos-15-intel
-            nix-system: x86_64-darwin
+      max-parallel: 8
+      matrix: ${{ fromJSON(needs.manifest-matrix.outputs.matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: cachix/install-nix-action@8aa03977d8d733052d78f4e008a241fd1dbf36b3 # v31.10.6
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Select manifest version for checks
+        env:
+          LEAN_VERSION: ${{ matrix.version }}
+        run: printf 'leanprover/lean4:%s\n' "$LEAN_VERSION" > templates/minimal/lean-toolchain
       - name: Run Lean and linked-executable checks
         run: |
           nix build --no-link --print-build-logs \
-            ".#checks.${{ matrix.nix-system }}.lean-bin-run" \
-            ".#checks.${{ matrix.nix-system }}.bin-minimal-exec"
+            ".#checks.${{ matrix.nix_system }}.lean-bin-run" \
+            ".#checks.${{ matrix.nix_system }}.bin-minimal-exec"
