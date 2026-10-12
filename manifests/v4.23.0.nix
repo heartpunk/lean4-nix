@@ -28,6 +28,7 @@
     lndir,
     perl,
     pkg-config,
+    openssl,
     gnused,
     darwin,
     llvmPackages,
@@ -38,27 +39,29 @@
     mimalloc-src = pkgs.fetchFromGitHub {
       owner = "microsoft";
       repo = "mimalloc";
-      rev = "v2.2.3";
-      sha256 = "sha256-B0gngv16WFLBtrtG5NqA2m5e95bYVcQraeITcOX9A74=";
+      rev = "v3.4.4";
+      sha256 = "sha256-CJ2sOio5cttIG27ZiotaES9X+ymHR5HXWK/O0JUjlC4=";
     };
     mimalloc-patch =
       pkgs.writeText "mimalloc.patch"
       ''
         --- a/CMakeLists.txt
         +++ b/CMakeLists.txt
-        @@ -68,11 +68,7 @@
-         if (USE_MIMALLOC)
-           ExternalProject_add(mimalloc
-             PREFIX mimalloc
+        @@ -129,13 +129,10 @@
+         if(USE_MIMALLOC)
+           FetchContent_Declare(
+             mimalloc
         -    GIT_REPOSITORY https://github.com/microsoft/mimalloc
-        -    GIT_TAG v2.2.3
-        -    # just download, we compile it as part of each stage as it is small
-        -    CONFIGURE_COMMAND ""
-        -    BUILD_COMMAND ""
-        +    SOURCE_DIR "${mimalloc-src}"
-             INSTALL_COMMAND "")
-           list(APPEND EXTRA_DEPENDS mimalloc)
-         endif()
+        -    GIT_BRANCH dev3
+        -    GIT_TAG v3.4.4
+             # Unnecessarily deep directory structure, but it saves us from a complicated
+             # stage0 update for now. If we ever update the other dependencies like
+             # cadical, it might be worth reorganizing the directory structure.
+             SOURCE_DIR
+        -    "''${CMAKE_BINARY_DIR}/mimalloc/src/mimalloc"
+        +    "${mimalloc-src}"
+             EXCLUDE_FROM_ALL
+           )
       '';
   in
     with builtins; rec {
@@ -78,6 +81,11 @@
             substituteInPlace "$file" \
               --replace-quiet '${pattern}' '${mimalloc-src}'
           done
+          # The Nix source subset excludes Lean's test tree, while recent Lean
+          # CMake files add it for non-stage-0 builds even with tests disabled.
+          substituteInPlace src/CMakeLists.txt \
+            --replace-fail 'if(NOT STAGE EQUAL 0)' \
+              'if(NOT STAGE EQUAL 0 AND EXISTS "''${CMAKE_CURRENT_SOURCE_DIR}/../tests")'
         '';
         dontBuild = true;
         dontConfigure = true;
@@ -91,7 +99,7 @@
       buildCMake = args:
         stdenv.mkDerivation ({
             nativeBuildInputs = [cmake mimalloc-src];
-            buildInputs = [gmp libuv llvmPackages.llvm pkg-config];
+            buildInputs = [gmp libuv llvmPackages.llvm pkg-config openssl];
             # https://github.com/NixOS/nixpkgs/issues/60919
             hardeningDisable = ["all"];
             dontStrip = args.debug or debug;
@@ -102,7 +110,7 @@
           }
           // args
           // {
-            src = args.realSrc or (sourceByRegex args.src ["[a-z].*" "CMakeLists\.txt"]);
+            src = args.realSrc or (sourceByRegex args.src ["[a-z].*" "CMakeLists\.txt" "Leanc\.lean"]);
             cmakeFlags = ["-DSMALL_ALLOCATOR=ON" "-DUSE_MIMALLOC=ON"] ++ (args.cmakeFlags or ["-DSTAGE=1" "-DPREV_STAGE=./faux-prev-stage" "-DUSE_GITHASH=OFF" "-DCADICAL=${cadical}/bin/cadical"]) ++ (args.extraCMakeFlags or extraCMakeFlags) ++ lib.optional (args.debug or debug) ["-DCMAKE_BUILD_TYPE=Debug"];
             preConfigure =
               args.preConfigure

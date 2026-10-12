@@ -23,4 +23,6 @@
   "v4.29.0" = import ./v4.29.0.nix;
   "v4.30.0" = import ./v4.30.0.nix;
   "v4.31.0" = import ./v4.31.0.nix;
+  "v4.34.0" = import ./v4.34.0.nix;
+  "v4.34.1" = import ./v4.34.1.nix;
 }

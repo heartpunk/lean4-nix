@@ -28,6 +28,7 @@ let
     buildLeanPackage ? null,
     tag,
     toolchain,
+    ...
   }:
     readFromGit {
       args = {
