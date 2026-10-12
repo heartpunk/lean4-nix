@@ -1,0 +1,35 @@
+name: macOS dylib checks
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lean-dylibs:
+    name: Lean 4.34.0 on ${{ matrix.runner }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            nix-system: aarch64-darwin
+          - runner: macos-15-intel
+            nix-system: x86_64-darwin
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: cachix/install-nix-action@8aa03977d8d733052d78f4e008a241fd1dbf36b3 # v31.10.6
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run Lean and linked-executable checks
+        run: |
+          nix build --no-link --print-build-logs \
+            ".#checks.${{ matrix.nix-system }}.lean-bin-run" \
+            ".#checks.${{ matrix.nix-system }}.bin-minimal-exec"
