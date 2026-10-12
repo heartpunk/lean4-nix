@@ -89,6 +89,7 @@
     lake-tests = rec {
       minimal-direct-lib = minimal-direct.sharedLib;
       minimal-direct-bin = minimal-direct.executable;
+      minimal-direct-bin-no-shared = minimal-direct.executable.override {withSharedStdlib = false;};
       minimal-manifest-bin = minimal-manifest;
       minimal-exec = pkgs.testers.testEqualContents {
         assertion = "Call minimal";
@@ -98,8 +99,25 @@
         };
         actual =
           pkgs.runCommand "actual"
-          {}
+          {nativeBuildInputs = lib.optionals pkgs.stdenv.isDarwin [pkgs.darwin.cctools];}
           ''
+            set -eu
+            ${lib.optionalString pkgs.stdenv.isDarwin ''
+              otool -l ${minimal-direct-bin}/bin/example | awk -v path="${lean.leanshared}" '
+                $1 == "cmd" { isRpath = ($2 == "LC_RPATH"); next }
+                isRpath && $1 == "path" && $2 == path { count++ }
+                END { if (count != 1) exit 1 }
+              '
+              if otool -l ${minimal-direct-bin-no-shared}/bin/example | awk -v path="${lean.leanshared}" '
+                $1 == "cmd" { isRpath = ($2 == "LC_RPATH"); next }
+                isRpath && $1 == "path" && $2 == path { found = 1 }
+                END { exit !found }
+              '; then
+                echo "withSharedStdlib = false unexpectedly records the Lean shared-library RPATH" >&2
+                exit 1
+              fi
+            ''}
+            ${minimal-direct-bin-no-shared}/bin/example >/dev/null
             ${minimal-direct-bin}/bin/example | head -c 2 > $out
           '';
       };

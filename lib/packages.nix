@@ -22,8 +22,30 @@ args @ {
   stage1 = lib.defaultTo lean.stage1 lean-bin;
 
   makeOverridableLeanPackage = f: let
-    newF = origArgs:
-      f origArgs
+    newF = origArgs: let
+      package = f origArgs;
+      packageWithLegacyDarwinRpath =
+        if buildLeanPackage == null && package ? executable
+        then
+          package
+          // {
+            # The legacy Lean builder links the shared standard library but
+            # does not add its directory to the executable's runtime search
+            # path. Its linkFlags argument lets this integration add the flag
+            # only for Darwin executables using the shared standard library.
+            executable = lib.makeOverridable (
+              {withSharedStdlib ? true}: let
+                leanFinal = origArgs."lean-final" or stage1;
+                linkFlags =
+                  (origArgs.linkFlags or [])
+                  ++ lib.optional (stdenv.isDarwin && withSharedStdlib) "-Wl,-rpath,${leanFinal.leanshared}";
+              in
+                (f (origArgs // {inherit linkFlags;})).executable.override {inherit withSharedStdlib;}
+            ) {};
+          }
+        else package;
+    in
+      packageWithLegacyDarwinRpath
       // {
         overrideArgs = newArgs: makeOverridableLeanPackage f (origArgs // newArgs);
       };
