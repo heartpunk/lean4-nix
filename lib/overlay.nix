@@ -30,13 +30,13 @@ let
     toolchain,
     ...
   }:
-    readSrc {
-      src = (builtins.fetchTree {
-        type = "github";
-        owner = "leanprover";
-        repo = "lean4";
+    readFromGit {
+      args = {
+        url = "https://github.com/leanprover/lean4.git";
+        shallow = true;
+        ref = "refs/tags/${tag}";
         inherit rev;
-      }).outPath;
+      };
       inherit bootstrap buildLeanPackage;
     };
   # Fetches a binary Lean
