@@ -7,6 +7,7 @@
   zstd,
   clang,
   lld,
+  llvmPackages,
   callPackage,
   makeWrapper,
   writeShellApplication,
@@ -59,7 +60,15 @@ in rec {
             nativeBuildInputs
             ++ lib.optionals stdenv.isLinux [autoPatchelfHook stdenv.cc.cc.lib];
         });
-    compile-bin = lib.makeBinPath [lld];
+    # `leanc` links with `-fuse-ld=lld`. On Linux, use the wrapped `ld.lld` so
+    # that executables get a runpath to the Lean shared libraries.
+    compile-bin = lib.makeBinPath [
+      (
+        if stdenv.isLinux
+        then llvmPackages.bintools
+        else lld
+      )
+    ];
     lean-all = mkDerivation {
       inherit version;
       name = "lean";
